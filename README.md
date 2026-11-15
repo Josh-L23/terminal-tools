@@ -72,6 +72,21 @@ tt formats report.docx
 tt doctor
 ```
 
+### Local web interface
+
+Start the monochrome local interface from the project directory:
+
+```bash
+./.venv/bin/python scripts/web_ui.py
+```
+
+Then open <http://127.0.0.1:8765>. You can drop or choose an `.md`, `.pdf`, or
+`.docx` file, choose the source and destination formats, and download the
+converted file. The interface uses the same conversion engine as `tt` and
+keeps uploaded files in a temporary local directory while converting. Stop it
+with Ctrl+C. Set `TT_UI_PORT` to use a different port, or `TT_PYTHON` to select
+the Python interpreter for the engine.
+
 By default, output is written next to the input file with the new extension.
 Existing files are never overwritten silently: `tt` asks first, or fails when
 running without a terminal unless `--force` is passed.

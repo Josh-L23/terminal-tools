@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#f6f5f0" />
+    <title>tt — file converter</title>
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <div class="page-shell">
+      <header class="topbar">
+        <a class="wordmark" href="/" aria-label="Terminal Tools home"><span class="mark">t<span>t</span></span><span class="wordmark-caption">TERMINAL TOOLS</span></a>
+        <div class="local-pill"><span class="status-dot"></span> NOT &amp; a data thief</div>
+      </header>
+
+      <main>
+        <section class="intro" aria-labelledby="title">
+          <div class="eyebrow"><span>01</span><span class="eyebrow-line"></span><span>DOCUMENT CONVERTER</span></div>
+          <h1 id="title">A little change<br />of <span>format.</span></h1>
+          <p class="intro-copy">Dont Use this to Cheat on your assignments.<br />(or vibe code)</p>
+          <span class="orbit orbit-one" aria-hidden="true">✳</span>
+          <span class="orbit orbit-two" aria-hidden="true">↘</span>
+        </section>
+
+        <section class="workspace" aria-label="Convert a file">
+          <div class="worktop"><span>LET’S GET THAT FILE SORTED</span><span class="step-count">01 <i>/</i> 02</span></div>
+          <div class="dropzone" id="dropzone" tabindex="0" role="button" aria-label="Choose a file or drop it here">
+            <input id="file-input" type="file" accept=".md,.pdf,.docx" hidden />
+            <div class="drop-content" id="drop-content">
+              <div class="drop-copy">
+                <span class="tiny-label">FIRST, PICK YOUR FILE</span>
+                <h2>Drop it here.<br /><span>0r se1ect one(1).</span></h2>
+                <button class="browse-button" id="browse-button" type="button">Pick ME<span aria-hidden="true">↗</span></button>
+                <p class="file-types">MD <b>·</b> PDF <b>·</b> DOCX</p>
+              </div>
+              <div class="character-wrap"><img class="character" src="/images/Cross-legged_with_laptop-removebg-preview.png" alt="A relaxed person working on a laptop" /><span class="doodle-star" aria-hidden="true">✳</span></div>
+            </div>
+            <div class="selected-file" id="selected-file" hidden>
+              <div class="file-icon" aria-hidden="true"><svg viewBox="0 0 48 56"><path d="M7 2h22l12 12v38H7z"/><path d="M29 2v13h12M14 30h20M14 38h20M14 46h13"/></svg></div>
+              <div class="selected-copy"><span class="tiny-label">READY TO GO</span><strong id="file-name">your-file.pdf</strong><span id="file-size" class="file-size"></span></div>
+              <button id="remove-file" class="remove-button" type="button" aria-label="Remove selected file">×</button>
+            </div>
+          </div>
+
+          <div class="settings-row">
+            <label class="format-field"><span class="tiny-label">FROM</span><span class="select-wrap"><select id="from-format" aria-label="Convert from"><option value="md">Markdown <small>.md</small></option><option value="pdf">PDF <small>.pdf</small></option><option value="docx">Word <small>.docx</small></option></select><span class="select-chevron">⌄</span></span></label>
+            <div class="transform-mark" aria-hidden="true"><span></span><svg viewBox="0 0 32 20"><path d="M2 10h25M20 2l8 8-8 8"/></svg><span></span></div>
+            <label class="format-field"><span class="tiny-label">TO</span><span class="select-wrap"><select id="to-format" aria-label="Convert to"></select><span class="select-chevron">⌄</span></span></label>
+          </div>
+          <p class="format-note" id="format-note">Choose the file type you’re starting with.</p>
+          <button class="convert-button" id="convert-button" type="button" disabled><span>Convert file</span><span class="button-arrow" aria-hidden="true">↗</span></button>
+          <p class="privacy-note"><svg viewBox="0 0 16 18" aria-hidden="true"><rect x="2" y="7" width="12" height="9" rx="2"/><path d="M5 7V5a3 3 0 0 1 6 0v2"/></svg> Your files stay on this device.</p>
+        </section>
+
+        <section class="loading-card" id="loading-card" aria-live="polite" hidden>
+          <div class="loading-words"><span class="tiny-label">A MOMENT, PLEASE</span><h2 id="loading-title">Making a little<br />format magic.</h2><p id="loading-copy">Your file is on its way.</p><div class="loading-track"><span></span></div></div>
+          <div class="loading-art"><img src="/images/Relaxed_Guy_with_Laptop-removebg-preview.png" alt="A relaxed person waiting with their laptop" /><span class="loading-spark" aria-hidden="true">✳</span></div>
+        </section>
+
+        <p class="footnote"><span>MADE BY josh and CHAT(my goat)</span><span>NO FUSS. JUST FILES. ( yes he wrote that) <b>↗</b></span></p>
+      </main>
+    </div>
+    <script src="/app.js" defer></script>
+  </body>
+</html>
