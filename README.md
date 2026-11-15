@@ -148,7 +148,3 @@ tt doctor
 - A unified tool-selection launcher
 - TUI and local web GUI built on `tt-core`
 - Packaging and release binaries
-
-## License
-
-MIT
