@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tt-engine"
+version = "0.1.0"
+description = "Document conversion engine for Terminal Tools"
+requires-python = ">=3.11"
+dependencies = [
+    "markdown>=3.7",
+    "weasyprint>=63",
+    "mammoth>=1.8",
+    "markdownify>=0.13",
+    "pymupdf4llm>=0.0.17",
+]
+
+[project.scripts]
+tt-engine = "tt_engine.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["tt_engine*"]
