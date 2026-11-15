@@ -27,7 +27,7 @@ DOCX images are extracted next to the output Markdown file into
 ## Install
 
 ```bash
-cd ~/Projects/Terminal-Tools
+cd /path/to/terminal-tools
 ./scripts/setup.sh
 ```
 
