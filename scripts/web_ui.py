@@ -18,9 +18,51 @@ from urllib.parse import unquote, urlparse
 ROOT = Path(__file__).resolve().parents[1]
 WEB = ROOT / "web"
 ENGINE = ROOT / "engine"
-FORMATS = {"md": ".md", "pdf": ".pdf", "docx": ".docx"}
-CONVERSIONS = {"md": {"pdf"}, "pdf": {"md"}, "docx": {"pdf", "md"}}
-MAX_UPLOAD = 50 * 1024 * 1024
+
+if str(ENGINE) not in sys.path:
+    sys.path.insert(0, str(ENGINE))
+
+try:
+    from tt_engine.registry import FORMAT_BY_NAME, canonical_format, capabilities, get_conversion
+except Exception:  # pragma: no cover - fallback when engine deps are unavailable
+    FORMAT_BY_NAME = {}
+    capabilities = None
+    canonical_format = None
+    get_conversion = None
+
+MAX_UPLOAD = int(os.environ.get("TT_UI_MAX_UPLOAD", str(100 * 1024 * 1024)))
+
+
+def _capabilities_payload() -> dict:
+    if capabilities is not None:
+        try:
+            return capabilities()
+        except Exception as exc:
+            return {"ok": False, "error": f"{type(exc).__name__}: {exc}"}
+
+    # Minimal fallback so the UI can still render if the engine cannot be imported.
+    return {
+        "ok": False,
+        "error": "conversion engine could not be loaded",
+        "formats": ["md", "pdf", "docx"],
+        "format_details": {
+            "md": {"name": "md", "label": "Markdown", "extension": ".md", "extensions": [".md"], "aliases": ["markdown"]},
+            "pdf": {"name": "pdf", "label": "PDF", "extension": ".pdf", "extensions": [".pdf"], "aliases": []},
+            "docx": {"name": "docx", "label": "Word document", "extension": ".docx", "extensions": [".docx"], "aliases": ["word"]},
+        },
+        "conversions": [],
+    }
+
+
+def _format_spec(name: str):
+    return FORMAT_BY_NAME.get(name) if FORMAT_BY_NAME else None
+
+
+def _allowed_extensions(name: str) -> set[str]:
+    spec = _format_spec(name)
+    if spec is not None:
+        return {ext.lower() for ext in spec.extensions}
+    return {f".{name.lower()}"}
 
 
 def python_executable() -> str:
@@ -36,6 +78,11 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_GET(self) -> None:
         path = unquote(urlparse(self.path).path)
+
+        if path == "/api/capabilities":
+            self._json_response(200, _capabilities_payload())
+            return
+
         if path == "/":
             target = WEB / "index.html"
         elif path in {"/app.js", "/style.css"}:
@@ -60,13 +107,27 @@ class Handler(BaseHTTPRequestHandler):
             ".js": "text/javascript; charset=utf-8",
             ".css": "text/css; charset=utf-8",
             ".png": "image/png",
-        }.get(resolved.suffix, "application/octet-stream")
+            ".jpg": "image/jpeg",
+            ".jpeg": "image/jpeg",
+            ".webp": "image/webp",
+            ".svg": "image/svg+xml",
+            ".ico": "image/x-icon",
+        }.get(resolved.suffix.lower(), "application/octet-stream")
         self.send_response(200)
         self.send_header("Content-Type", content_type)
         self.send_header("Content-Length", str(len(payload)))
         self.send_header("X-Content-Type-Options", "nosniff")
         self.end_headers()
         self.wfile.write(payload)
+
+    def _json_response(self, status: int, payload: dict) -> None:
+        data = json.dumps(payload, ensure_ascii=False).encode("utf-8")
+        self.send_response(status)
+        self.send_header("Content-Type", "application/json; charset=utf-8")
+        self.send_header("Content-Length", str(len(data)))
+        self.send_header("X-Content-Type-Options", "nosniff")
+        self.end_headers()
+        self.wfile.write(data)
 
     def do_POST(self) -> None:
         if urlparse(self.path).path != "/api/convert":
@@ -96,7 +157,8 @@ class Handler(BaseHTTPRequestHandler):
         except ValueError as error:
             raise ValueError("Invalid upload size.") from error
         if length <= 0 or length > MAX_UPLOAD:
-            raise ValueError("Choose a file smaller than 50 MB.")
+            max_mb = max(1, MAX_UPLOAD // (1024 * 1024))
+            raise ValueError(f"Choose a file smaller than {max_mb} MB.")
         content_type = self.headers.get("Content-Type", "")
         if not content_type.startswith("multipart/form-data"):
             raise ValueError("Upload a file using the file picker.")
@@ -118,23 +180,34 @@ class Handler(BaseHTTPRequestHandler):
             elif field_name:
                 fields[field_name] = part.get_content()
 
-        source_format = fields.get("from", "").lower()
-        target_format = fields.get("to", "").lower()
-        if source_format not in FORMATS or target_format not in CONVERSIONS.get(source_format, set()):
+        source_format = fields.get("from", "").strip().lower()
+        target_format = fields.get("to", "").strip().lower()
+        if canonical_format is not None:
+            source_format = canonical_format(source_format) or source_format
+            target_format = canonical_format(target_format) or target_format
+
+        if not source_format or not target_format:
+            raise ValueError("Choose source and target formats.")
+        if get_conversion is not None and get_conversion(source_format, target_format) is None:
             raise ValueError("That conversion isn’t available.")
         if not upload_name:
             raise ValueError("Choose a file to convert.")
 
         original_name = Path(upload_name.replace("\\", "/")).name
-        if Path(original_name).suffix.lower() != FORMATS[source_format]:
-            raise ValueError(f"Choose a {FORMATS[source_format]} file to match the ‘from’ format.")
+        suffix = Path(original_name).suffix.lower()
+        allowed_extensions = _allowed_extensions(source_format)
+        if suffix not in allowed_extensions:
+            expected = ", ".join(sorted(allowed_extensions))
+            raise ValueError(f"Choose a file with one of these extensions: {expected}.")
         stem = Path(original_name).stem or "converted-file"
         safe_stem = re.sub(r"[^A-Za-z0-9._ -]", "_", stem).strip(" .") or "converted-file"
-        output_name = f"{safe_stem}.{target_format}"
+        output_ext = (_format_spec(target_format).extension if _format_spec(target_format) else f".{target_format}")
+        output_name = f"{safe_stem}{output_ext}"
 
         with tempfile.TemporaryDirectory(prefix="tt-web-") as temp_name:
             temp = Path(temp_name)
-            input_path = temp / f"input{FORMATS[source_format]}"
+            input_ext = suffix or (_format_spec(source_format).extension if _format_spec(source_format) else f".{source_format}")
+            input_path = temp / f"input{input_ext}"
             output_path = temp / output_name
             input_path.write_bytes(upload_data)
             environment = os.environ.copy()
@@ -169,13 +242,7 @@ class Handler(BaseHTTPRequestHandler):
             return output_path.read_bytes(), output_name
 
     def _json_error(self, status: int, message: str) -> None:
-        payload = json.dumps({"error": message}, ensure_ascii=False).encode("utf-8")
-        self.send_response(status)
-        self.send_header("Content-Type", "application/json; charset=utf-8")
-        self.send_header("Content-Length", str(len(payload)))
-        self.send_header("X-Content-Type-Options", "nosniff")
-        self.end_headers()
-        self.wfile.write(payload)
+        self._json_response(status, {"error": message})
 
     def log_message(self, format: str, *args: object) -> None:
         print(f"[tt-ui] {self.address_string()} {format % args}")

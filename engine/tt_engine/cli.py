@@ -11,25 +11,27 @@ from pathlib import Path
 
 from . import __version__
 from .errors import ConversionError
-from .registry import capabilities, get_conversion
+from .registry import FORMAT_BY_NAME, capabilities, canonical_format, get_conversion
 
-_FORMATS = ("md", "pdf", "docx")
-_EXTENSIONS = {"md": ".md", "pdf": ".pdf", "docx": ".docx"}
+
+def _format_choices() -> tuple[str, ...]:
+    return tuple(FORMAT_BY_NAME.keys())
 
 
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="tt-engine",
-        description="Document conversion engine for Terminal Tools",
+        description="File conversion engine for Terminal Tools",
     )
     parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
 
+    format_choices = _format_choices()
     subparsers = parser.add_subparsers(dest="command", required=True)
 
-    convert = subparsers.add_parser("convert", help="convert a document")
+    convert = subparsers.add_parser("convert", help="convert a file")
     convert.add_argument("--input", "-i", required=True, type=Path)
-    convert.add_argument("--from", dest="source", required=True, choices=_FORMATS)
-    convert.add_argument("--to", dest="target", required=True, choices=_FORMATS)
+    convert.add_argument("--from", dest="source", required=True, choices=format_choices)
+    convert.add_argument("--to", dest="target", required=True, choices=format_choices)
     convert.add_argument("--output", "-o", required=True, type=Path)
 
     subparsers.add_parser("doctor", help="check conversion backends")
@@ -49,19 +51,27 @@ def _convert(arguments: argparse.Namespace) -> int:
     if not source.is_file():
         raise ConversionError(f"input file not found: {source}")
 
-    expected_extension = _EXTENSIONS[arguments.source]
-    if source.suffix.lower() != expected_extension:
+    source_format = canonical_format(arguments.source) or arguments.source
+    target_format = canonical_format(arguments.target) or arguments.target
+    spec = FORMAT_BY_NAME.get(source_format)
+    if spec is None:
+        raise ConversionError(f"unsupported source format: {arguments.source}")
+
+    suffix = source.suffix.lower()
+    allowed = {ext.lower() for ext in spec.extensions}
+    if suffix not in allowed:
+        expected = ", ".join(spec.extensions)
         raise ConversionError(
-            f"input file has extension '{source.suffix}', expected '{expected_extension}'"
+            f"input file has extension '{source.suffix}', expected one of: {expected}"
         )
 
     if source.resolve() == target.resolve():
         raise ConversionError("refusing to overwrite the input file")
 
-    conversion = get_conversion(arguments.source, arguments.target)
+    conversion = get_conversion(source_format, target_format)
     if conversion is None:
         raise ConversionError(
-            f"no converter for {arguments.source} → {arguments.target}"
+            f"no converter for {source_format} → {target_format}"
         )
 
     target.parent.mkdir(parents=True, exist_ok=True)

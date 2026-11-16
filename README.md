@@ -1,10 +1,12 @@
 # Terminal Tools
 
 Local, terminal-first utilities for everyday file work. The first tool is `tt`,
-a document converter that detects the input format and lets you pick a target
+a file converter that detects the input format and lets you pick a target
 format interactively.
 
 ## Supported conversions
+
+### Documents
 
 | From             | To       | Backend                          |
 | ---------------- | -------- | -------------------------------- |
@@ -15,6 +17,16 @@ format interactively.
 
 DOCX images are extracted next to the output Markdown file into
 `<output-name>_media/`.
+
+### Images
+
+| From / To                           | Backend |
+| ----------------------------------- | ------- |
+| PNG, JPEG (`.jpg`/`.jpeg`), WebP, BMP, GIF, TIFF (`.tif`/`.tiff`) — convert between any of these formats | Pillow  |
+
+Image conversions preserve orientation (EXIF transpose), use the first frame for
+animated inputs, and flatten transparency to white for formats without alpha
+(e.g. JPEG/BMP).
 
 ## Requirements
 
@@ -49,15 +61,19 @@ tt doctor
 ```bash
 # Point at a file and choose the target interactively
 tt report.md
+tt photo.png
 
 # Specify the target directly
 tt report.md --to pdf
 tt report.docx --to md
 tt document.pdf --to md
+tt photo.png --to webp
+tt image.jpeg --to png
 
 # Choose an output file or an existing directory
 tt report.docx --to md -o converted/
 tt report.md --to pdf -o final-report.pdf
+tt photo.png -o exports/
 
 # Overwrite an existing output without prompting
 tt report.docx --to md --force
@@ -67,6 +83,7 @@ tt report.md --to pdf --open
 
 # Inspect available targets for a file
 tt formats report.docx
+tt formats photo.png
 
 # Check backends and dependencies
 tt doctor
@@ -74,18 +91,21 @@ tt doctor
 
 ### Local web interface
 
-Start the monochrome local interface from the project directory:
+Start the local interface from the project directory:
 
 ```bash
 ./.venv/bin/python scripts/web_ui.py
 ```
 
-Then open <http://127.0.0.1:8765>. You can drop or choose an `.md`, `.pdf`, or
-`.docx` file, choose the source and destination formats, and download the
-converted file. The interface uses the same conversion engine as `tt` and
-keeps uploaded files in a temporary local directory while converting. Stop it
-with Ctrl+C. Set `TT_UI_PORT` to use a different port, or `TT_PYTHON` to select
-the Python interpreter for the engine.
+Then open <http://127.0.0.1:8765>. You can drop or choose a supported document
+or image file, pick source and destination formats, and download the converted
+file. The interface loads available formats from the engine (`/api/capabilities`)
+and uses the same conversion backends as `tt`. Uploaded files are kept in a
+temporary local directory while converting.
+
+Environment variables: `TT_UI_PORT` (default `8765`), `TT_UI_HOST` (default
+`127.0.0.1`), `TT_PYTHON` (interpreter for conversions), `TT_UI_MAX_UPLOAD`
+(max upload size in bytes, default 100 MB). Stop with Ctrl+C.
 
 By default, output is written next to the input file with the new extension.
 Existing files are never overwritten silently: `tt` asks first, or fails when
@@ -102,7 +122,7 @@ tt convert report.md --to pdf
 ```text
 tt convert <INPUT> [OPTIONS]
 
-  -t, --to <FORMAT>      Target format: md, pdf, or docx
+  -t, --to <FORMAT>      Target format (e.g. pdf, md, png, jpg, webp, tiff)
   -o, --output <PATH>    Output file or directory
   -f, --force            Overwrite an existing output
       --open             Open the result after conversion
@@ -153,6 +173,9 @@ tt doctor
 - Only `.docx` is supported; legacy `.doc` files are not.
 - PDF → Markdown quality depends on the PDF's internal structure. Scanned
   documents need OCR before conversion.
+- Image conversions are single-frame (first frame for animated GIF/WebP/TIFF).
+  JPEG/BMP cannot store transparency, so alpha is composited onto white.
+- HEIC/AVIF and RAW camera formats are not supported yet.
 - The installed binary discovers the engine from this project directory or
   `TT_ENGINE_DIR`. If the project is moved, re-run `scripts/setup.sh` or set the
   environment variable.

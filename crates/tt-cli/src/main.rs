@@ -39,7 +39,7 @@ pub struct ConvertArgs {
     /// File to convert
     pub input: PathBuf,
 
-    /// Target format (md, pdf, or docx)
+    /// Target format (e.g. pdf, md, png, jpg, webp)
     #[arg(short, long, value_parser = parse_format)]
     pub to: Option<Format>,
 

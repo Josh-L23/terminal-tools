@@ -9,8 +9,9 @@ pub fn execute(input: Option<PathBuf>) -> Result<()> {
         Some(input) => {
             let source = Format::from_path(&input).with_context(|| {
                 format!(
-                    "unsupported input file '{}'; expected a .md, .pdf, or .docx file",
-                    input.display()
+                    "unsupported input file '{}'; supported formats: {}",
+                    input.display(),
+                    Format::supported_names()
                 )
             })?;
 

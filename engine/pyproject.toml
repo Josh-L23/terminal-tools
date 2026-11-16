@@ -13,6 +13,7 @@ dependencies = [
     "mammoth>=1.8",
     "markdownify>=0.13",
     "pymupdf4llm>=0.0.17",
+    "Pillow>=11.0.0",
 ]
 
 [project.scripts]
