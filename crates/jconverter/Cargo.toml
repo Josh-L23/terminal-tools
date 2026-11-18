@@ -1,0 +1,17 @@
+[package]
+name = "jconverter"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+
+[[bin]]
+name = "jconverter"
+path = "src/main.rs"
+
+[dependencies]
+anyhow = { workspace = true }
+eframe = { workspace = true }
+rfd = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+tt-core = { workspace = true }

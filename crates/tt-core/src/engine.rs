@@ -7,6 +7,7 @@ use anyhow::{Context, Result, bail};
 use serde::Deserialize;
 
 use crate::Format;
+use crate::runtime;
 
 #[derive(Debug, Clone)]
 pub struct Engine {
@@ -43,16 +44,14 @@ struct Response {
 
 impl Engine {
     pub fn discover() -> Result<Self> {
-        let project_root = find_project_root();
-
         let engine_dir = env::var_os("TT_ENGINE_DIR")
             .map(PathBuf::from)
-            .or_else(|| project_root.as_ref().map(|root| root.join("engine")))
+            .or_else(runtime::find_engine_dir)
             .context(
                 "could not locate the Python engine; set TT_ENGINE_DIR or run from the project",
             )?;
 
-        if !engine_dir.join("tt_engine").join("__main__.py").is_file() {
+        if !runtime::is_engine_dir(&engine_dir) {
             bail!(
                 "Python engine not found at {}; set TT_ENGINE_DIR to the engine directory",
                 engine_dir.display()
@@ -61,15 +60,8 @@ impl Engine {
 
         let python = env::var_os("TT_PYTHON")
             .map(PathBuf::from)
-            .or_else(|| {
-                let candidate = project_root
-                    .as_ref()?
-                    .join(".venv")
-                    .join("bin")
-                    .join("python");
-                candidate.is_file().then_some(candidate)
-            })
-            .unwrap_or_else(|| PathBuf::from("python3"));
+            .or_else(|| runtime::find_venv_python(Some(&engine_dir)))
+            .unwrap_or_else(runtime::default_python);
 
         Ok(Self { python, engine_dir })
     }
@@ -195,36 +187,4 @@ fn python_path(engine_dir: &Path) -> OsString {
         paths.extend(env::split_paths(&existing));
     }
     env::join_paths(paths).unwrap_or_else(|_| engine_dir.as_os_str().to_owned())
-}
-
-fn find_project_root() -> Option<PathBuf> {
-    let mut starts = Vec::new();
-    if let Ok(current_dir) = env::current_dir() {
-        starts.push(current_dir);
-    }
-    if let Some(executable) = env::current_exe()
-        .ok()
-        .and_then(|path| path.parent().map(Path::to_path_buf))
-    {
-        starts.push(executable);
-    }
-    starts.push(Path::new(env!("CARGO_MANIFEST_DIR")).join("../.."));
-
-    for start in starts {
-        for directory in start.ancestors() {
-            if directory
-                .join("engine")
-                .join("tt_engine")
-                .join("__main__.py")
-                .is_file()
-            {
-                return Some(
-                    directory
-                        .canonicalize()
-                        .unwrap_or_else(|_| directory.to_path_buf()),
-                );
-            }
-        }
-    }
-    None
 }

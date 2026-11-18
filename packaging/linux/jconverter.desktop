@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=JConverter
+GenericName=File Converter
+Comment=Convert documents and images locally
+Exec=jconverter
+Icon=jconverter
+Terminal=false
+Categories=Utility;Office;

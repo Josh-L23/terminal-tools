@@ -1,7 +1,6 @@
 use std::fs;
 use std::io::{self, IsTerminal};
 use std::path::Path;
-use std::process::Command;
 use std::time::Duration;
 
 use anyhow::{Context, Result, bail};
@@ -9,7 +8,7 @@ use console::style;
 use dialoguer::theme::ColorfulTheme;
 use dialoguer::{Confirm, Select};
 use indicatif::{ProgressBar, ProgressDrawTarget};
-use tt_core::{Engine, Format, default_output_path};
+use tt_core::{Engine, Format, default_output_path, open_path};
 
 use crate::ConvertArgs;
 
@@ -162,38 +161,4 @@ fn new_spinner() -> ProgressBar {
     spinner.set_message("Converting…");
     spinner.enable_steady_tick(Duration::from_millis(80));
     spinner
-}
-
-fn open_path(path: &Path) -> Result<()> {
-    #[cfg(target_os = "linux")]
-    let mut command = {
-        let mut command = Command::new("xdg-open");
-        command.arg(path);
-        command
-    };
-
-    #[cfg(target_os = "macos")]
-    let mut command = {
-        let mut command = Command::new("open");
-        command.arg(path);
-        command
-    };
-
-    #[cfg(target_os = "windows")]
-    let mut command = {
-        let mut command = Command::new("cmd");
-        command.args(["/C", "start", ""]).arg(path);
-        command
-    };
-
-    #[cfg(not(any(target_os = "linux", target_os = "macos", target_os = "windows")))]
-    {
-        eprintln!("note: opening files is not supported on this platform");
-        return Ok(());
-    }
-
-    command
-        .spawn()
-        .with_context(|| format!("failed to open {}", path.display()))?;
-    Ok(())
 }

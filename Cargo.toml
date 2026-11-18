@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["crates/tt-core", "crates/tt-cli"]
+members = ["crates/tt-core", "crates/tt-cli", "crates/jconverter"]
 
 [workspace.package]
 version = "0.1.0"
@@ -15,4 +15,11 @@ clap = { version = "4", features = ["derive"] }
 console = "0.15"
 dialoguer = "0.11"
 indicatif = "0.17"
+eframe = { version = "0.32", default-features = false, features = [
+    "default_fonts",
+    "glow",
+    "wayland",
+    "x11",
+] }
+rfd = "0.18"
 tt-core = { path = "crates/tt-core" }
